@@ -1,125 +1,146 @@
+import { MusicApiService } from '../services/MusicApiService'
+import { PlayerService } from '../services/PlayerService'
+import { Song } from '../models/Song'
+import { SongListItem } from '../components/SongListItem'
+import { MiniPlayer } from '../components/MiniPlayer'
+
 @Entry
 @Component
 struct Index {
-  @State searchText: string = ''
-  @State isPlaying: boolean = false
-  @State currentSong: string = '暂无播放'
-  @State currentArtist: string = ''
-  @State progress: number = 0
+  @State songList: Song[] = []
+  @State searchKeyword: string = ''
+  // ✅ 修复1：使用 getInstance() 获取单例
+  private playerService: PlayerService = PlayerService.getInstance()
+
+  aboutToAppear() {
+    // 加载歌曲列表
+    this.loadSongs()
+  }
+
+  /**
+   * 加载歌曲列表
+   */
+  private async loadSongs() {
+    try {
+      this.songList = await MusicApiService.getHotSongs()
+      console.info('[Index] Loaded songs:', this.songList.length)
+
+      // ✅ 添加弹窗提示（临时调试用）
+      AlertDialog.show({
+        title: '调试信息',
+        message: `加载了 ${this.songList.length} 首歌曲`,
+        confirm: {
+          value: '确定',
+          action: () => {}
+        }
+      })
+    } catch (error) {
+      console.error('[Index] Load songs failed:', error)
+
+      // ✅ 添加错误弹窗
+      AlertDialog.show({
+        title: '错误',
+        message: `加载失败: ${error}`,
+        confirm: {
+          value: '确定',
+          action: () => {}
+        }
+      })
+    }
+  }
+
+
+  /**
+   * 搜索歌曲
+   */
+  private async searchSongs() {
+    if (this.searchKeyword.trim() === '') {
+      await this.loadSongs()
+    } else {
+      try {
+        this.songList = await MusicApiService.searchSongs(this.searchKeyword)
+        console.info('[Index] Search results:', this.songList.length)
+      } catch (error) {
+        console.error('[Index] Search failed:', error)
+      }
+    }
+  }
+
+  /**
+   * 点击歌曲项
+   */
+  private async onSongClick(song: Song) {
+    console.info('[Index] Play song:', song.name)
+
+    // ✅ 修复2：正确设置播放列表并播放
+    // 1. 设置播放列表
+    this.playerService.setPlaylist(this.songList)
+
+    // 2. 播放指定歌曲
+    const index = this.songList.indexOf(song)
+    if (index >= 0) {
+      await this.playerService.playSongAt(index)
+    }
+  }
 
   build() {
     Column() {
-      // 顶部搜索栏
+      // 顶部标题栏
       Row() {
-        TextInput({ placeholder: '搜索歌曲、歌手' })
-          .width('85%')
-          .height(40)
-          .onChange((value: string) => {
-            this.searchText = value
-          })
-
-        Button('搜索')
-          .width('12%')
-          .height(40)
-          .onClick(() => {
-            console.info(`搜索: ${this.searchText}`)
-          })
-      }
-      .width('100%')
-      .padding(10)
-      .backgroundColor('#f5f5f5')
-
-      // 主内容区域
-      Column() {
         Text('音乐播放器')
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .margin({ top: 40, bottom: 20 })
-
-        // 占位专辑封面
-        Image($r('app.media.app_icon'))
-          .width(200)
-          .height(200)
-          .borderRadius(10)
-          .margin({ bottom: 30 })
-
-        // 歌曲信息
-        Text(this.currentSong)
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
-          .margin({ bottom: 5 })
-
-        Text(this.currentArtist)
-          .fontSize(16)
-          .fontColor('#666')
-          .margin({ bottom: 10 })
-
-        // 播放进度条
-        Row() {
-          Text('00:00')
-            .fontSize(12)
-            .fontColor('#999')
-
-          Slider({
-            value: this.progress,
-            min: 0,
-            max: 100,
-            step: 1
-          })
-            .width('70%')
-            .blockColor('#1890ff')
-            .trackColor('#e0e0e0')
-            .selectedColor('#1890ff')
-            .onChange((value: number) => {
-              this.progress = value
-            })
-
-          Text('00:00')
-            .fontSize(12)
-            .fontColor('#999')
-        }
-        .width('90%')
-        .justifyContent(FlexAlign.SpaceBetween)
-        .margin({ bottom: 40 })
-
-        // 播放控制按钮
-        Row() {
-          Button('上一曲')
-            .width(80)
-            .height(40)
-            .backgroundColor('#f0f0f0')
-            .fontColor('#333')
-            .onClick(() => {
-              console.info('上一曲')
-            })
-
-          Button(this.isPlaying ? '暂停' : '播放')
-            .width(80)
-            .height(40)
-            .backgroundColor('#1890ff')
-            .fontColor('#fff')
-            .onClick(() => {
-              this.isPlaying = !this.isPlaying
-              console.info(this.isPlaying ? '开始播放' : '暂停播放')
-            })
-
-          Button('下一曲')
-            .width(80)
-            .height(40)
-            .backgroundColor('#f0f0f0')
-            .fontColor('#333')
-            .onClick(() => {
-              console.info('下一曲')
-            })
-        }
-        .width('90%')
-        .justifyContent(FlexAlign.SpaceEvenly)
+          .fontColor('#333333')
       }
       .width('100%')
-      .height('100%')
-      .backgroundColor('#fff')
+      .height(56)
+      .padding({ left: 16, right: 16 })
+      .backgroundColor(Color.White)
+      .justifyContent(FlexAlign.Center)
+
+      // 搜索框
+      Row() {
+        Search({
+          placeholder: '搜索歌曲、歌手',
+          value: this.searchKeyword
+        })
+          .width('100%')
+          .height(40)
+          .backgroundColor('#F5F5F5')
+          .onChange((value: string) => {
+            this.searchKeyword = value
+          })
+          .onSubmit(() => {
+            this.searchSongs()
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+      .backgroundColor(Color.White)
+
+      // 歌曲列表
+      List() {
+        ForEach(this.songList, (song: Song) => {
+          ListItem() {
+            SongListItem({
+              song: song,
+              onItemClick: (clickedSong: Song) => {
+                this.onSongClick(clickedSong)
+              }
+            })
+          }
+        }, (song: Song) => song.id.toString())
+      }
+      .width('100%')  // ✅ 修复3：添加宽度
+      .layoutWeight(1)
+      .backgroundColor('#F8F8F8')
+      .padding({ left: 8, right: 8, top: 8 })
+
+      // 底部迷你播放器
+      MiniPlayer()
     }
     .width('100%')
     .height('100%')
+    .backgroundColor('#F8F8F8')
   }
 }

@@ -1,48 +1,56 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window } from '@kit.ArkUI';
-
-const DOMAIN = 0x0000;
+import UIAbility from '@ohos.app.ability.UIAbility';
+import hilog from '@ohos.hilog';
+import window from '@ohos.window';
+import Want from '@ohos.app.ability.Want';
+import AbilityConstant from '@ohos.app.ability.AbilityConstant';
+import { PlayerService } from '../services/PlayerService';
 
 export default class EntryAbility extends UIAbility {
-  onCreate(_want: Want, _launchParam: AbilityConstant.LaunchParam): void {
+  async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
+    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
+
+    // ✅ 初始化播放器服务
     try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
-    } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
+      await PlayerService.init();
+      hilog.info(0x0000, 'testTag', 'PlayerService initialized successfully');
+    } catch (error) {
+      hilog.error(0x0000, 'testTag', 'PlayerService init failed: %{public}s', JSON.stringify(error));
     }
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
-  onDestroy(): void {
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
+  async onDestroy(): Promise<void> {
+    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onDestroy');
+
+    // ✅ 释放播放器服务
+    try {
+      await PlayerService.destroy();
+      hilog.info(0x0000, 'testTag', 'PlayerService destroyed successfully');
+    } catch (error) {
+      hilog.error(0x0000, 'testTag', 'PlayerService destroy failed: %{public}s', JSON.stringify(error));
+    }
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    // Main window is created, set main page for this ability
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
+    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/SearchPage', (err) => {
+    windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
+        hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
         return;
       }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+      hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
   }
 
   onWindowStageDestroy(): void {
-    // Main window is destroyed, release UI related resources
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
+    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
   }
 
   onForeground(): void {
-    // Ability has brought to foreground
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
+    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onForeground');
   }
 
   onBackground(): void {
-    // Ability has back to background
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onBackground');
   }
 }

@@ -2,11 +2,11 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "音乐播放器模块"
+      "value": "音乐播放器应用模块"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "音乐播放器应用"
+      "value": "音乐播放器主入口"
     },
     {
       "name": "EntryAbility_label",
@@ -14,7 +14,15 @@
     },
     {
       "name": "internet_permission_reason",
-      "value": "用于播放在线音乐和获取歌曲信息"
+      "value": "需要网络权限以播放在线音乐和获取歌曲信息"
+    },
+    {
+      "name": "read_media_permission_reason",
+      "value": "需要读取媒体文件权限以访问和播放本地音乐"
+    },
+    {
+      "name": "write_media_permission_reason",
+      "value": "需要写入媒体文件权限以下载和管理音乐文件"
     }
   ]
 }
