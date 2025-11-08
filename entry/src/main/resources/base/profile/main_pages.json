@@ -1,5 +1,7 @@
 {
   "src": [
-    "pages/SearchPage"
+    "pages/Index",
+    "pages/MusicListPage",
+    "pages/PlayerPage"
   ]
 }
