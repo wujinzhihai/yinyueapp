@@ -5,8 +5,7 @@ import { Song } from '../models/Song'
  */
 @Component
 export struct SongListItem {
-  // ✅ 使用普通参数而不是@Prop
-  song: Song = new Song(0, '', '', '', '', 0)
+  @Prop song: Song
   onItemClick?: (song: Song) => void
 
   build() {
@@ -15,9 +14,9 @@ export struct SongListItem {
       Image(this.song.coverUrl)
         .width(60)
         .height(60)
-        .borderRadius(8)
-        .margin({ right: 12 })
+        .borderRadius(6)
         .objectFit(ImageFit.Cover)
+        .margin({ right: 12 })
 
       // 歌曲信息
       Column() {
@@ -28,11 +27,16 @@ export struct SongListItem {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Text(`${this.song.artist} - ${this.song.album}`)
+        Text(this.song.artist)
           .fontSize(14)
           .fontColor('#999999')
+          .margin({ top: 4 })
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Text(`${this.song.duration}`)
+          .fontSize(12)
+          .fontColor('#CCCCCC')
           .margin({ top: 4 })
       }
       .alignItems(HorizontalAlign.Start)

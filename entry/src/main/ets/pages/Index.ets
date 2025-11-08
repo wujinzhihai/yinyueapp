@@ -1,3 +1,4 @@
+// D:\hongmengxitong\MusicApp\entry\src\main\ets\pages\Index.ets
 import { MusicApiService } from '../services/MusicApiService'
 import { PlayerService } from '../services/PlayerService'
 import { Song } from '../models/Song'
@@ -9,7 +10,7 @@ import { MiniPlayer } from '../components/MiniPlayer'
 struct Index {
   @State songList: Song[] = []
   @State searchKeyword: string = ''
-  // ✅ 修复1：使用 getInstance() 获取单例
+  // ✅ 修正：使用单例模式获取实例
   private playerService: PlayerService = PlayerService.getInstance()
 
   aboutToAppear() {
@@ -24,31 +25,10 @@ struct Index {
     try {
       this.songList = await MusicApiService.getHotSongs()
       console.info('[Index] Loaded songs:', this.songList.length)
-
-      // ✅ 添加弹窗提示（临时调试用）
-      AlertDialog.show({
-        title: '调试信息',
-        message: `加载了 ${this.songList.length} 首歌曲`,
-        confirm: {
-          value: '确定',
-          action: () => {}
-        }
-      })
     } catch (error) {
       console.error('[Index] Load songs failed:', error)
-
-      // ✅ 添加错误弹窗
-      AlertDialog.show({
-        title: '错误',
-        message: `加载失败: ${error}`,
-        confirm: {
-          value: '确定',
-          action: () => {}
-        }
-      })
     }
   }
-
 
   /**
    * 搜索歌曲
@@ -69,18 +49,14 @@ struct Index {
   /**
    * 点击歌曲项
    */
-  private async onSongClick(song: Song) {
+  private onSongClick(song: Song) {
     console.info('[Index] Play song:', song.name)
-
-    // ✅ 修复2：正确设置播放列表并播放
+    // ✅ 修正：拆分为两步操作
     // 1. 设置播放列表
     this.playerService.setPlaylist(this.songList)
-
-    // 2. 播放指定歌曲
-    const index = this.songList.indexOf(song)
-    if (index >= 0) {
-      await this.playerService.playSongAt(index)
-    }
+    // 2. 播放指定索引的歌曲
+    const songIndex = this.songList.indexOf(song)
+    this.playerService.playSongAt(songIndex)
   }
 
   build() {
@@ -131,7 +107,7 @@ struct Index {
           }
         }, (song: Song) => song.id.toString())
       }
-      .width('100%')  // ✅ 修复3：添加宽度
+      .width('100%')
       .layoutWeight(1)
       .backgroundColor('#F8F8F8')
       .padding({ left: 8, right: 8, top: 8 })
