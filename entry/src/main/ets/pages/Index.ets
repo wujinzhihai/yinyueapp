@@ -1,11 +1,21 @@
 // entry/src/main/ets/pages/Index.ets
-
 import { Song } from '../models/Song'
 import { MusicApiService } from '../services/MusicApiService'
 import { PlayerService } from '../services/PlayerService'
 import { SongListItem } from '../components/SongListItem'
 import { MiniPlayer } from '../components/MiniPlayer'
+import { BusinessError } from '@ohos.base'
+import http from '@ohos.net.http'
+import router from '@ohos.router'
 
+// ✅ 接口定义（所有对象都是独立接口）
+interface PlaylistData {
+  tracks?: Song[]
+}
+interface TestResponse {
+  code: number
+  playlist?: PlaylistData
+}
 @Entry
 @Component
 struct Index {
@@ -13,16 +23,60 @@ struct Index {
   @State filteredSongs: Song[] = []
   @State searchText: string = ''
   @State isLoading: boolean = true
-  @State isSearching: boolean = false  // ✅ 新增：搜索状态
+  @State isSearching: boolean = false
   @State errorMessage: string = ''
-  @State searchMode: boolean = false  // ✅ 新增：是否处于搜索模式
-
+  @State searchMode: boolean = false
   private playerService: PlayerService = PlayerService.getInstance()
   @State playerStateVersion: number = 0
   private updateTimer: number = -1
+  // ✅ 网络测试方法（使用上面定义的接口）
+  async testNetworkConnection(): Promise<void> {
+    console.info('[TEST] ========== 开始网络测试 ==========')
+
+    const testUrl = 'http://10.24.139.82:3000/playlist/detail?id=19723756'
+    const httpRequest = http.createHttp()
+
+    try {
+      console.info(`[TEST] 🌐 测试URL: ${testUrl}`)
+
+      const response = await httpRequest.request(testUrl, {
+        method: http.RequestMethod.GET,
+        connectTimeout: 10000,
+        readTimeout: 10000
+      })
+
+      console.info(`[TEST] ✅ 状态码: ${response.responseCode}`)
+      console.info(`[TEST] ✅ 响应类型: ${typeof response.result}`)
+      console.info(`[TEST] ✅ 响应长度: ${(response.result as string).length}`)
+      console.info(`[TEST] ✅ 响应前100字符: ${(response.result as string).substring(0, 100)}`)
+
+      const data = JSON.parse(response.result as string) as TestResponse
+      console.info(`[TEST] ✅ JSON解析成功`)
+      console.info(`[TEST] ✅ code: ${data.code}`)
+      console.info(`[TEST] ✅ 歌曲数量: ${data.playlist?.tracks?.length || 0}`)
+
+    } catch (err) {
+      console.error(`[TEST] ❌ 请求失败`)
+      console.error(`[TEST] ❌ 错误类型: ${typeof err}`)
+      console.error(`[TEST] ❌ 错误内容: ${JSON.stringify(err)}`)
+
+      if (err && typeof err === 'object') {
+        const error = err as BusinessError
+        console.error(`[TEST] ❌ 错误码: ${error.code}`)
+        console.error(`[TEST] ❌ 错误消息: ${error.message}`)
+      }
+    } finally {
+      httpRequest.destroy()
+    }
+  }
 
   async aboutToAppear(): Promise<void> {
     console.info('[Index] ============ 页面启动 ============')
+
+    // ✅ 先执行网络测试
+    await this.testNetworkConnection()
+
+    // 然后加载歌曲
     await this.loadHotSongs()
     this.startPlayerStateUpdate()
   }
@@ -40,7 +94,7 @@ struct Index {
   async loadHotSongs(): Promise<void> {
     this.isLoading = true
     this.errorMessage = ''
-    this.searchMode = false  // ✅ 退出搜索模式
+    this.searchMode = false
 
     try {
       console.info('[Index] 开始加载热门歌曲...')
@@ -59,10 +113,8 @@ struct Index {
     }
   }
 
-  // ✅ 新增：在线搜索方法
   async performOnlineSearch(keywords: string): Promise<void> {
     if (!keywords || keywords.trim() === '') {
-      // 空字符串时恢复热门歌曲
       this.searchMode = false
       this.filteredSongs = this.songs
       return
@@ -78,7 +130,6 @@ struct Index {
       console.info(`[Index] ✅ 搜索成功: ${results.length} 首歌曲`)
 
       if (results.length > 0) {
-        // ✅ 更新播放列表为搜索结果
         this.playerService.setPlaylist(results)
       }
     } catch (err) {
@@ -89,26 +140,29 @@ struct Index {
     }
   }
 
-  // ✅ 修改：搜索触发方法
   onSearchSubmit(): void {
     const keywords = this.searchText.trim()
     if (keywords === '') {
-      // 清空搜索，恢复热门歌曲
       this.searchMode = false
       this.filteredSongs = this.songs
       console.info('[Index] 清空搜索，显示热门歌曲')
     } else {
-      // 执行在线搜索
       this.performOnlineSearch(keywords)
     }
   }
-
+  // ✅ 正确的 onSongClick 方法
   onSongClick(song: Song): void {
     const index = this.filteredSongs.findIndex(s => s.id === song.id)
     this.playerService.playSong(song, index)
     console.info(`[Index] 点击播放: ${song.name}`)
-  }
 
+    // ✅ 路由跳转
+    router.pushUrl({
+      url: 'pages/PlayerPage'
+    }).catch((err: Error) => {
+      console.error('[Index] ❌ 路由跳转失败:', JSON.stringify(err))
+    })
+  }
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
       Column() {
@@ -129,7 +183,7 @@ struct Index {
               this.searchText = value
             })
             .onSubmit(() => {
-              this.onSearchSubmit()  // ✅ 回车触发在线搜索
+              this.onSearchSubmit()
             })
 
           Button('🔍')
@@ -140,13 +194,12 @@ struct Index {
             .height(40)
             .margin({ left: 10 })
             .onClick(() => {
-              this.onSearchSubmit()  // ✅ 按钮触发在线搜索
+              this.onSearchSubmit()
             })
         }
         .width('100%')
         .padding({ left: 20, right: 20, bottom: 15 })
 
-        // ✅ 新增：显示当前模式
         if (this.searchMode && !this.isSearching) {
           Row() {
             Text(`搜索 "${this.searchText}"`)

@@ -3,7 +3,7 @@
 import { http } from '@kit.NetworkKit'
 import { Song } from '../models/Song'
 
-const BASE_URL = 'http://10.24.139.82'
+const BASE_URL = 'http://10.24.139.82:3000'
 
 // ✅ 使用 class 定义类型（ArkTS 要求）
 class Artist {
