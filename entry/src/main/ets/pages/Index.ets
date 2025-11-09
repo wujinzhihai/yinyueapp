@@ -1,174 +1,225 @@
-import { MusicItem } from '../models/MusicItem';
+import { MusicItem } from '../services/MusicApiService';
+import AudioPlayerService, { PlayState } from '../services/AudioPlayerService';
 import MusicApiService from '../services/MusicApiService';
-import { router } from '@kit.ArkUI';
+import { MiniPlayer } from '../components/MiniPlayer';
+import promptAction from '@ohos.promptAction';
+import router from '@ohos.router';
+
+// 🔥 定义明确的状态接口
+interface PlayerState {
+  currentSong: MusicItem | null;
+  playState: PlayState;
+  currentTime: number;
+  duration: number;
+  playlist: MusicItem[];
+  currentIndex: number;
+}
 
 @Entry
 @Component
 struct Index {
-  @State musicList: MusicItem[] = [];
-  @State isLoading: boolean = false;
-  @State isSearching: boolean = false;
   @State searchKeyword: string = '';
+  @State searchResults: MusicItem[] = [];
+  @State isSearching: boolean = false;
+  @StorageProp('currentSong') currentSong: MusicItem | null = null;
+  @StorageProp('playState') playState: PlayState = PlayState.IDLE;
+  @StorageProp('currentIndex') currentIndex: number = -1;
 
-  aboutToAppear(): void {
-    this.loadMusicList();
+  aboutToAppear() {
+    // 🔥 修复：使用实例方法 + 明确类型
+    AudioPlayerService.getInstance().subscribe((state: PlayerState) => {
+      AppStorage.setOrCreate('currentSong', state.currentSong);
+      AppStorage.setOrCreate('playState', state.playState);
+      AppStorage.setOrCreate('currentTime', state.currentTime);
+      AppStorage.setOrCreate('duration', state.duration);
+      AppStorage.setOrCreate('playlist', state.playlist);
+      AppStorage.setOrCreate('currentIndex', state.currentIndex);
+    });
   }
 
-  // 加载音乐列表
-  async loadMusicList(): Promise<void> {
-    this.isLoading = true;
-    try {
-      this.musicList = await MusicApiService.fetchMusicList();
-    } catch (error) {
-      console.error('加载音乐列表失败:', error);
-    } finally {
-      this.isLoading = false;
+  async performSearch() {
+    if (!this.searchKeyword.trim()) {
+      promptAction.showToast({ message: '请输入搜索关键词' });
+      return;
     }
-  }
 
-  // 搜索音乐
-  async handleSearch(): Promise<void> {
-    // 清空原有列表
-    this.musicList = [];
     this.isSearching = true;
+    this.searchResults = [];
 
     try {
-      this.musicList = await MusicApiService.searchMusic(this.searchKeyword);
+      const results = await MusicApiService.searchMusic(this.searchKeyword, 'netease');
+      this.searchResults = results;
+      console.info('[Index] 搜索结果:', results.length);
+
+      if (results.length === 0) {
+        promptAction.showToast({ message: '未找到相关歌曲' });
+      }
     } catch (error) {
-      console.error('搜索失败:', error);
+      console.error('[Index] 搜索失败:', error);
+      promptAction.showToast({ message: '搜索失败，请检查网络' });
     } finally {
       this.isSearching = false;
     }
   }
 
-  // 跳转到播放器页面
-  navigateToPlayer(music: MusicItem): void {
-    router.pushUrl({
-      url: 'pages/PlayerPage',
-      params: {
-        music: music
-      }
-    }).catch((err: Error) => {
-      console.error('页面跳转失败:', err);
-    });
+  async playSong(song: MusicItem, index: number) {
+    console.info('[Index] 点击播放:', song.name);
+
+    try {
+      // 🔥 修复：使用实例方法
+      await AudioPlayerService.getInstance().play(song, this.searchResults, index);
+      console.info('[Index] 播放服务调用成功');
+
+      await router.pushUrl({
+        url: 'pages/PlayerPage'
+      });
+
+    } catch (error) {
+      console.error('[Index] 播放失败:', JSON.stringify(error));
+      promptAction.showToast({
+        message: '播放失败'
+      });
+    }
+  }
+
+  formatDuration(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   build() {
     Column() {
-      // 顶部搜索栏
+      // 搜索栏
       Row() {
-        TextInput({ placeholder: '搜索歌曲或歌手', text: this.searchKeyword })
-          .width('70%')
-          .height(40)
-          .onChange((value: string) => {
-            this.searchKeyword = value;
-          })
+        TextInput({ placeholder: '搜索歌曲、歌手', text: $$this.searchKeyword })
+          .layoutWeight(1)
+          .height(50)
+          .fontSize(16)
+          .backgroundColor('#F5F5F5')
+          .borderRadius(25)
+          .padding({ left: 20, right: 20 })
           .onSubmit(() => {
-            this.handleSearch();
+            this.performSearch();
           })
 
-        Button('搜索')
-          .width('25%')
-          .height(40)
-          .margin({ left: 10 })
-          .onClick(() => {
-            this.handleSearch();
-          })
+        Button({ type: ButtonType.Circle }) {
+          Text('🔍')
+            .fontSize(20)
+        }
+        .width(50)
+        .height(50)
+        .backgroundColor('#FF6B6B')
+        .margin({ left: 12 })
+        .onClick(() => {
+          this.performSearch();
+        })
       }
-      .width('90%')
-      .margin({ top: 20, bottom: 20 })
+      .width('100%')
+      .padding(16)
+      .backgroundColor('#FFFFFF')
 
-      // 音乐列表
-      if (this.isLoading || this.isSearching) {
+      // 加载状态
+      if (this.isSearching) {
         Column() {
           LoadingProgress()
-            .width(50)
-            .height(50)
-            .margin({ top: 100 })
-
-          Text(this.isSearching ? '正在搜索...' : '加载中...')
-            .fontSize(16)
+            .width(40)
+            .height(40)
+            .color('#FF6B6B')
+          Text('搜索中...')
+            .fontSize(14)
             .fontColor('#999999')
-            .margin({ top: 20 })
+            .margin({ top: 12 })
         }
         .width('100%')
-        .height('80%')
+        .height('100%')
         .justifyContent(FlexAlign.Center)
-      } else if (this.musicList.length === 0) {
-        Column() {
-          Text('未找到相关歌曲')
-            .fontSize(16)
-            .fontColor('#999999')
-        }
-        .width('100%')
-        .height('80%')
-        .justifyContent(FlexAlign.Center)
-      } else {
-        List({ space: 10 }) {
-          ForEach(this.musicList, (item: MusicItem) => {
+      } else if (this.searchResults.length > 0) {
+        // 搜索结果列表
+        List({ space: 0 }) {
+          ForEach(this.searchResults, (item: MusicItem, index: number) => {
             ListItem() {
-              MusicItemComponent({
-                music: item,
-                onItemClick: (music: MusicItem) => {
-                  this.navigateToPlayer(music);
+              Row() {
+                Row() {
+                  if (this.currentSong && this.currentSong.id === item.id && this.playState === PlayState.PLAYING) {
+                    Text('♫')
+                      .fontSize(16)
+                      .fontColor('#FF6B6B')
+                      .fontWeight(FontWeight.Bold)
+                      .margin({ right: 8 })
+                  }
+                  Text(`${index + 1}`)
+                    .fontSize(14)
+                    .fontColor('#999999')
                 }
+                .width(40)
+
+                Column() {
+                  Text(item.name)
+                    .fontSize(16)
+                    .fontWeight(FontWeight.Medium)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .width('100%')
+
+                  Text(`${item.artist} - ${item.album || '未知专辑'}`)
+                    .fontSize(12)
+                    .fontColor('#999999')
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .margin({ top: 4 })
+                    .width('100%')
+                }
+                .layoutWeight(1)
+                .margin({ left: 12, right: 12 })
+                .alignItems(HorizontalAlign.Start)
+
+                if (item.duration) {
+                  Text(this.formatDuration(item.duration))
+                    .fontSize(12)
+                    .fontColor('#999999')
+                }
+              }
+              .width('100%')
+              .height(70)
+              .padding({ left: 16, right: 16 })
+              .backgroundColor(this.currentSong && this.currentSong.id === item.id ? '#FFF5F5' : '#FFFFFF')
+              .onClick(() => {
+                this.playSong(item, index);
               })
             }
-          }, (item: MusicItem) => item.id)
+          }, (item: MusicItem) => item.id + item.source)
         }
         .width('100%')
-        .height('80%')
-        .padding({ left: 20, right: 20 })
+        .layoutWeight(1)
+        .divider({ strokeWidth: 1, color: '#F0F0F0' })
+      } else {
+        // 空状态
+        Column() {
+          Text('🎵')
+            .fontSize(80)
+            .opacity(0.3)
+          Text('暂无搜索结果')
+            .fontSize(16)
+            .fontColor('#999999')
+            .margin({ top: 16 })
+          Text('试试搜索你喜欢的歌曲')
+            .fontSize(14)
+            .fontColor('#CCCCCC')
+            .margin({ top: 8 })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      }
+
+      // 迷你播放器
+      if (this.currentSong) {
+        MiniPlayer()
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
-  }
-}
-
-@Component
-struct MusicItemComponent {
-  @Prop music: MusicItem;
-  onItemClick?: (music: MusicItem) => void;
-
-  build() {
-    Row() {
-      Image(this.music.coverUrl)
-        .width(60)
-        .height(60)
-        .borderRadius(8)
-        .objectFit(ImageFit.Cover)
-
-      Column() {
-        Text(this.music.title)
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-
-        Text(this.music.artist)
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ top: 5 })
-      }
-      .alignItems(HorizontalAlign.Start)
-      .margin({ left: 15 })
-      .layoutWeight(1)
-
-      Image($r('sys.symbol.play_circle'))
-        .width(30)
-        .height(30)
-        .fillColor('#1E90FF')
-    }
-    .width('100%')
-    .padding(15)
-    .backgroundColor(Color.White)
-    .borderRadius(12)
-    .shadow({ radius: 5, color: '#E0E0E0', offsetX: 0, offsetY: 2 })
-    .onClick(() => {
-      if (this.onItemClick) {
-        this.onItemClick(this.music);
-      }
-    })
+    .backgroundColor('#FFFFFF')
   }
 }
