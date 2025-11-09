@@ -2,19 +2,19 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "音乐播放器"
+      "value": "云音乐播放器"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "音乐播放器应用"
+      "value": "云音乐播放器应用"
     },
     {
       "name": "EntryAbility_label",
-      "value": "音乐播放器"
+      "value": "云音乐"
     },
     {
       "name": "internet_permission_reason",
-      "value": "需要网络权限来获取和播放在线音乐"
+      "value": "用于搜索和播放在线音乐"
     }
   ]
 }
