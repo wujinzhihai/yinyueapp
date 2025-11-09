@@ -10,6 +10,7 @@ export struct SongListItem {
 
   build() {
     Row() {
+      // ✅ 修复1：cove.audioUrl → coverUrl
       Image(this.song.coverUrl || 'https://via.placeholder.com/50')
         .width(50)
         .height(50)
@@ -45,7 +46,8 @@ export struct SongListItem {
       .margin({ left: 12, right: 12 })
       .alignItems(HorizontalAlign.Start)
 
-      Text(this.formatDuration(this.song.duration))
+      // ✅ 修复2：使用 Song 类的方法
+      Text(this.song.getFormattedDuration())
         .fontSize(13)
         .fontColor('#999999')
     }
@@ -56,11 +58,5 @@ export struct SongListItem {
     .onClick(() => {
       this.onItemClick(this.song)
     })
-  }
-
-  private formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 }

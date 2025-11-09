@@ -1,13 +1,12 @@
-
 {
   "string": [
     {
       "name": "module_desc",
-      "value": "音乐播放器应用"
+      "value": "音乐播放器"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "音乐播放器主界面"
+      "value": "音乐播放器应用"
     },
     {
       "name": "EntryAbility_label",
@@ -15,7 +14,7 @@
     },
     {
       "name": "internet_permission_reason",
-      "value": "用于获取在线音乐列表和播放音频"
+      "value": "需要网络权限来获取和播放在线音乐"
     }
   ]
 }

@@ -46,15 +46,17 @@ export class MusicApiService {
 
       if (response.responseCode === 200) {
         const result: ApiResponse = JSON.parse(response.result as string)
-        return result.data?.map((item: SongData): Song => ({
-          id: item.id,
-          name: item.name,
-          artist: item.artist,
-          album: item.album,
-          duration: item.duration,
-          coverUrl: item.coverUrl,
-          audioUrl: item.audioUrl
-        })) || []
+        return result.data?.map((item: SongData): Song =>
+        new Song(
+          item.id,
+          item.name,
+          item.artist,
+          item.album,
+          item.duration,
+          item.audioUrl,    // ⚠️ 注意：audioUrl 在 coverUrl 之前
+          item.coverUrl
+        )
+        ) || []
       } else {
         throw new Error(`请求失败: ${response.responseCode}`)
       }
@@ -82,15 +84,17 @@ export class MusicApiService {
 
       if (response.responseCode === 200) {
         const result: ApiResponse = JSON.parse(response.result as string)
-        return result.data?.map((item: SongData): Song => ({
-          id: item.id,
-          name: item.name,
-          artist: item.artist,
-          album: item.album,
-          duration: item.duration,
-          coverUrl: item.coverUrl,
-          audioUrl: item.audioUrl
-        })) || []
+        return result.data?.map((item: SongData): Song =>
+        new Song(
+          item.id,
+          item.name,
+          item.artist,
+          item.album,
+          item.duration,
+          item.audioUrl,
+          item.coverUrl
+        )
+        ) || []
       } else {
         throw new Error(`搜索失败: ${response.responseCode}`)
       }
@@ -120,15 +124,15 @@ export class MusicApiService {
         const result: ApiResponse = JSON.parse(response.result as string)
         const item: SongData | undefined = result.data?.[0]
         if (item) {
-          return {
-            id: item.id,
-            name: item.name,
-            artist: item.artist,
-            album: item.album,
-            duration: item.duration,
-            coverUrl: item.coverUrl,
-            audioUrl: item.audioUrl
-          }
+          return new Song(
+            item.id,
+            item.name,
+            item.artist,
+            item.album,
+            item.duration,
+            item.audioUrl,
+            item.coverUrl
+          )
         }
       }
       return null

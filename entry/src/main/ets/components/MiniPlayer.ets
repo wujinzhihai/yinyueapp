@@ -1,108 +1,83 @@
 // entry/src/main/ets/components/MiniPlayer.ets
 
+import { Song } from '../models/Song'
 import { PlayerService } from '../services/PlayerService'
+import { router } from '@kit.ArkUI'
 
 @Component
 export struct MiniPlayer {
+  @StorageLink('currentSong') currentSong: Song | null = null
+  @StorageLink('isPlaying') isPlaying: boolean = false
   private playerService: PlayerService = PlayerService.getInstance()
-  @State refreshKey: number = 0
-  private refreshTimer: number = -1
-
-  aboutToAppear(): void {
-    // ✅ 启动定时刷新
-    this.refreshTimer = setInterval(() => {
-      this.refreshKey++
-    }, 500)
-  }
-
-  aboutToDisappear(): void {
-    clearInterval(this.refreshTimer)
-  }
 
   build() {
-    Column() {
+    if (this.currentSong) {
       Row() {
-        Slider({
-          value: this.playerService.currentTime,
-          min: 0,
-          max: this.playerService.duration > 0 ? this.playerService.duration : 100,
-          step: 1000
-        })
-          .width('100%')
-          .trackColor('#E0E0E0')
-          .selectedColor('#FF1744')
-          .blockColor('#FF1744')
-          .trackThickness(2)
-          .onChange((value: number) => {
-            this.playerService.seekTo(value)
-          })
-      }
-      .width('100%')
-      .height(20)
-      .key(`slider-${this.refreshKey}`)  // ✅ 强制刷新
+        // 封面
+        Image(this.currentSong.coverUrl || '')
+          .width(50)
+          .height(50)
+          .borderRadius(4)
+          .objectFit(ImageFit.Cover)
+          .alt($r('app.media.app_icon'))
 
-      Row() {
+        // 歌曲信息
         Column() {
-          Text(this.playerService.currentSong?.name || '暂无播放')
+          Text(this.currentSong.name)
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-          Text(this.playerService.currentSong?.artist || '')
+          Text(this.currentSong.artist)
             .fontSize(12)
             .fontColor('#999999')
-            .margin({ top: 2 })
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 4 })
         }
-        .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+        .margin({ left: 12 })
 
-        Row({ space: 20 }) {
-          Text('⏮')
-            .fontSize(24)
-            .fontColor('#333333')
-            .onClick(() => {
-              this.playerService.playPrevious()
-            })
-
-          Text(this.playerService.isPlaying ? '⏸' : '▶')
-            .fontSize(28)
-            .fontColor('#FF1744')
-            .onClick(() => {
-              this.playerService.togglePlay()
-            })
-
-          Text('⏭')
-            .fontSize(24)
-            .fontColor('#333333')
-            .onClick(() => {
-              this.playerService.playNext()
-            })
+        // 播放/暂停按钮
+        Button({ type: ButtonType.Circle }) {
+          Text(this.isPlaying ? '⏸' : '▶')
+            .fontSize(18)
+            .fontColor(Color.White)
         }
+        .width(40)
+        .height(40)
+        .backgroundColor('#FF6B6B')
+        .onClick(() => {
+          console.info(`[MiniPlayer] 点击播放按钮，当前状态: ${this.isPlaying}`)
+          this.playerService.togglePlay()
+        })
 
-        Text(`${this.formatTime(this.playerService.currentTime)} / ${this.formatTime(this.playerService.duration)}`)
-          .fontSize(12)
-          .fontColor('#999999')
-          .margin({ left: 15 })
+        // 播放列表按钮
+        Button({ type: ButtonType.Circle }) {
+          Text('📃')
+            .fontSize(18)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(Color.Transparent)
+        .margin({ left: 8 })
       }
       .width('100%')
-      .padding({ left: 15, right: 15, bottom: 10 })
+      .height(70)
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+      .backgroundColor(Color.White)
+      .borderRadius({ topLeft: 12, topRight: 12 })
+      .shadow({
+        radius: 8,
+        color: '#10000000',
+        offsetY: -2
+      })
+      .onClick(() => {
+        console.info('[MiniPlayer] 点击迷你播放器，跳转到播放页面')
+        router.pushUrl({ url: 'pages/PlayerPage' })
+      })
     }
-    .width('100%')
-    .backgroundColor('#FFFFFF')
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .shadow({
-      radius: 10,
-      color: '#00000020',
-      offsetY: -2
-    })
-  }
-
-  private formatTime(ms: number): string {
-    const seconds = Math.floor(ms / 1000)
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 }

@@ -1,3 +1,5 @@
+// entry/src/main/ets/utils/HttpUtil.ets
+
 import http from '@ohos.net.http'
 
 /**
@@ -13,22 +15,22 @@ export class HttpUtil {
    */
   static async get<T>(url: string, params?: Record<string, string | number>): Promise<T> {
     // 构建完整 URL
-    let fullUrl = url
+    let fullUrl = url  // ✅ 修正拼写错误
     if (params) {
       const queryString = Object.keys(params)
         .map((key: string): string => `${key}=${encodeURIComponent(String(params[key]))}`)
         .join('&')
-      fullUrl = `${url}?${queryString}`
+      fullUrl = `${url}?${queryString}`  // ✅ 使用正确的变量名
     }
 
     // 创建 HTTP 请求对象
     const httpRequest = http.createHttp()
 
     try {
-      console.info(`[HttpUtil] 请求: ${fullUrl}`)
+      console.info(`[HttpUtil] 请求: ${fullUrl}`)  // ✅ 使用正确的变量名
 
       // 发送请求
-      const response = await httpRequest.request(fullUrl, {
+      const response = await httpRequest.request(fullUrl, {  // ✅ 使用正确的变量名
         method: http.RequestMethod.GET,
         header: {
           'Content-Type': 'application/json'
@@ -61,7 +63,7 @@ export class HttpUtil {
   }
 
   /**
-   * 发送 POST 请求（预留，下阶段实现）
+   * 发送 POST 请求
    * @param url 请求地址
    * @param data 请求体数据
    * @returns Promise<T>
@@ -70,6 +72,8 @@ export class HttpUtil {
     const httpRequest = http.createHttp()
 
     try {
+      console.info(`[HttpUtil] POST请求: ${url}`)
+
       const response = await httpRequest.request(url, {
         method: http.RequestMethod.POST,
         header: {
@@ -84,7 +88,11 @@ export class HttpUtil {
         throw new Error(`HTTP错误: ${response.responseCode}`)
       }
 
-      return JSON.parse(response.result as string) as T
+      const result = JSON.parse(response.result as string) as T
+
+      console.info(`[HttpUtil] POST响应成功`)
+
+      return result
 
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err))

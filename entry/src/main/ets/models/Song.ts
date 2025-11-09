@@ -1,4 +1,4 @@
-// entry/src/main/ets/models/Song.ts
+// entry/src/main/ets/models/Song.ets
 
 /**
  * 歌曲数据接口
@@ -58,16 +58,27 @@ export class Song implements ISong {
     )
   }
 
-  // ========== 兼容属性 ==========
-  get singer(): string {
-    return this.artist
+  /**
+   * 格式化时长为 mm:ss
+   */
+  getFormattedDuration(): string {
+    const minutes = Math.floor(this.duration / 60)
+    const seconds = this.duration % 60
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  get url(): string {
-    return this.audioUrl
-  }
-
-  get picUrl(): string {
-    return this.coverUrl
+  /**
+   * 转为 JSON 对象
+   */
+  toJson(): Record<string, Object> {
+    return {
+      'id': this.id,
+      'name': this.name,
+      'artist': this.artist,
+      'album': this.album,
+      'duration': this.duration,
+      'audioUrl': this.audioUrl,
+      'coverUrl': this.coverUrl
+    }
   }
 }

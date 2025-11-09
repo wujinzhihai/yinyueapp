@@ -1,210 +1,167 @@
-// entry/src/main/ets/pages/PlayerPage.ets
-
-import { PlayerService } from '../services/PlayerService'
-import { Song } from '../models/Song'
-import router from '@ohos.router'
+import { router } from '@kit.ArkUI';
+import { MusicItem } from '../models/MusicItem';
 
 @Entry
 @Component
 struct PlayerPage {
-  @State currentSong: Song | null = null
-  @State isPlaying: boolean = false
-  @State currentTime: number = 0
-  @State duration: number = 0
-
-  private playerService: PlayerService = PlayerService.getInstance()
-  private updateTimer: number = -1
+  @State currentMusic: MusicItem | null = null;
+  @State isPlaying: boolean = false;
+  @State currentTime: number = 0;
+  @State duration: number = 180; // 默认3分钟
 
   aboutToAppear(): void {
-    console.info('[PlayerPage] 页面启动')
-    this.loadCurrentSong()
-    this.startStateUpdate()
-  }
-
-  aboutToDisappear(): void {
-    console.info('[PlayerPage] 页面销毁')
-    clearInterval(this.updateTimer)
-  }
-
-  // ✅ 启动定时更新
-  private startStateUpdate(): void {
-    this.updateTimer = setInterval(() => {
-      this.updatePlayerState()
-    }, 500)
-  }
-
-  // ✅ 更新播放器状态
-  private updatePlayerState(): void {
-    this.currentSong = this.playerService.currentSong
-    this.isPlaying = this.playerService.isPlaying
-    // ✅ 修复：直接使用 currentTime 属性（毫秒转秒）
-    this.currentTime = Math.floor(this.playerService.currentTime / 1000)
-
-    if (this.currentSong) {
-      this.duration = this.currentSong.duration
+    // 接收路由参数
+    const params = router.getParams() as Record<string, Object>;
+    if (params && params['music']) {
+      this.currentMusic = params['music'] as MusicItem;
+      console.info('接收到歌曲数据:', JSON.stringify(this.currentMusic));
     }
   }
 
-  private loadCurrentSong(): void {
-    const song = this.playerService.currentSong
-    if (song) {
-      this.currentSong = song
-      this.duration = song.duration
-      console.info(`[PlayerPage] 当前歌曲: ${song.name}`)
-    } else {
-      console.warn('[PlayerPage] ⚠️ 无当前歌曲')
-    }
+  // 返回上一页
+  goBack(): void {
+    router.back();
   }
 
-  private handlePlayPause(): void {
-    console.info('[PlayerPage] 切换播放状态')
-    this.playerService.togglePlay()
-    this.isPlaying = this.playerService.isPlaying
+  // 播放/暂停
+  togglePlay(): void {
+    this.isPlaying = !this.isPlaying;
+    // TODO: 实现真实的音频播放控制
   }
 
-  private handlePrevious(): void {
-    console.info('[PlayerPage] 上一曲')
-    this.playerService.playPrevious()
-    this.loadCurrentSong()
-  }
-
-  private handleNext(): void {
-    console.info('[PlayerPage] 下一曲')
-    this.playerService.playNext()
-    this.loadCurrentSong()
-  }
-
-  // ✅ 返回首页
-  private handleBack(): void {
-    router.back()
-  }
-
-  // ✅ 修复：改为 minutes 消除警告
-  private formatTime(seconds: number): string {
-    const minutes = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return minutes.toString() + ':' + (secs < 10 ? '0' : '') + secs.toString()
+  // 格式化时间
+  formatTime(seconds: number): string {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
   }
 
   build() {
     Column() {
-      // ✅ 顶部返回按钮
+      // 顶部导航栏
       Row() {
-        Button('← 返回')
-          .fontSize(16)
-          .backgroundColor(Color.Transparent)
-          .fontColor('#333333')
-          .onClick(() => this.handleBack())
+        Image($r('sys.symbol.chevron_left'))
+          .width(24)
+          .height(24)
+          .fillColor('#333333')
+          .onClick(() => {
+            this.goBack();
+          })
+
+        Text('正在播放')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+
+        // 占位，保持标题居中
+        Row().width(24).height(24)
       }
       .width('100%')
-      .padding({ left: 20, top: 20, bottom: 10 })
-      .justifyContent(FlexAlign.Start)
+      .height(56)
+      .padding({ left: 20, right: 20 })
+      .justifyContent(FlexAlign.SpaceBetween)
 
-      if (this.currentSong) {
+      if (this.currentMusic) {
         Column() {
           // 封面
-          Image(this.currentSong.coverUrl)
-            .width(300)
-            .height(300)
-            .borderRadius(12)
-            .margin({ top: 40, bottom: 40 })
-            .alt($r('app.media.app_icon'))  // ✅ 加载失败时显示默认图标
+          Image(this.currentMusic.coverUrl)
+            .width(280)
+            .height(280)
+            .borderRadius(20)
+            .margin({ top: 60 })
+            .shadow({ radius: 20, color: '#00000030', offsetX: 0, offsetY: 10 })
 
           // 歌曲信息
-          Text(this.currentSong.name)
+          Text(this.currentMusic.title)
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
             .fontColor('#333333')
-            .margin({ bottom: 8 })
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 40 })
 
-          Text(this.currentSong.artist)
+          Text(this.currentMusic.artist)
             .fontSize(16)
-            .fontColor('#999999')
-            .margin({ bottom: 40 })
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .fontColor('#666666')
+            .margin({ top: 10 })
 
           // 进度条
-          Row() {
-            Text(this.formatTime(this.currentTime))
-              .fontSize(12)
-              .fontColor('#999999')
-              .width(45)
-
+          Column() {
             Slider({
               value: this.currentTime,
               min: 0,
-              max: this.duration > 0 ? this.duration : 1,
-              step: 1
+              max: this.duration,
+              step: 1,
+              style: SliderStyle.OutSet
             })
-              .layoutWeight(1)
-              .margin({ left: 12, right: 12 })
+              .blockColor('#1E90FF')
               .trackColor('#E0E0E0')
-              .selectedColor('#FF1744')
+              .selectedColor('#1E90FF')
+              .showSteps(false)
+              .onChange((value: number) => {
+                this.currentTime = value;
+              })
 
-            Text(this.formatTime(this.duration))
-              .fontSize(12)
-              .fontColor('#999999')
-              .width(45)
+            Row() {
+              Text(this.formatTime(this.currentTime))
+                .fontSize(12)
+                .fontColor('#999999')
+
+              Text(this.formatTime(this.duration))
+                .fontSize(12)
+                .fontColor('#999999')
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.SpaceBetween)
+            .margin({ top: 5 })
           }
           .width('90%')
-          .margin({ bottom: 50 })
+          .margin({ top: 40 })
 
           // 控制按钮
           Row() {
-            Button('⏮️')
-              .fontSize(32)
-              .backgroundColor(Color.Transparent)
-              .fontColor('#333333')
-              .onClick(() => this.handlePrevious())
+            // 上一曲
+            Image($r('sys.symbol.backward_end_fill'))
+              .width(40)
+              .height(40)
+              .fillColor('#666666')
 
-            Button(this.isPlaying ? '⏸️' : '▶️')
-              .fontSize(48)
-              .backgroundColor('#FF1744')
-              .fontColor('#FFFFFF')
-              .width(80)
-              .height(80)
-              .borderRadius(40)
+            // 播放/暂停
+            Image(this.isPlaying ? $r('sys.symbol.pause_circle_fill') : $r('sys.symbol.play_circle_fill'))
+              .width(70)
+              .height(70)
+              .fillColor('#1E90FF')
               .margin({ left: 40, right: 40 })
-              .onClick(() => this.handlePlayPause())
+              .onClick(() => {
+                this.togglePlay();
+              })
 
-            Button('⏭️')
-              .fontSize(32)
-              .backgroundColor(Color.Transparent)
-              .fontColor('#333333')
-              .onClick(() => this.handleNext())
+            // 下一曲
+            Image($r('sys.symbol.forward_end_fill'))
+              .width(40)
+              .height(40)
+              .fillColor('#666666')
           }
-          .width('100%')
+          .width('80%')
           .justifyContent(FlexAlign.Center)
+          .margin({ top: 40 })
         }
         .width('100%')
         .layoutWeight(1)
-        .justifyContent(FlexAlign.Start)
         .alignItems(HorizontalAlign.Center)
-
       } else {
-        // 无歌曲时显示
+        // 无数据时显示提示
         Column() {
-          Text('🎵')
-            .fontSize(60)
-            .margin({ bottom: 20 })
-          Text('暂无播放歌曲')
-            .fontSize(18)
-            .fontColor('#999999')
-          Button('返回首页')
+          Text('无歌曲信息')
             .fontSize(16)
-            .margin({ top: 30 })
-            .onClick(() => this.handleBack())
+            .fontColor('#999999')
         }
-        .layoutWeight(1)
         .width('100%')
+        .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FAFAFA')
+    .backgroundColor('#F5F5F5')
   }
 }
