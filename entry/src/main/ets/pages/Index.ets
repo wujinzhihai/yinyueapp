@@ -4,6 +4,8 @@ import MusicApiService from '../services/MusicApiService';
 import { MiniPlayer } from '../components/MiniPlayer';
 import promptAction from '@ohos.promptAction';
 import router from '@ohos.router';
+import { LOCAL_PLAYLISTS, PlaylistItem } from '../constants/LocalData';
+
 
 // 🔥 定义明确的状态接口
 interface PlayerState {
@@ -119,6 +121,76 @@ struct Index {
       .padding(16)
       .backgroundColor('#FFFFFF')
 
+      // 推荐歌单横向滚动
+      if (this.searchResults.length === 0 && !this.isSearching) {
+        Column() {
+          // 标题
+          Row() {
+            Text('精选推荐')
+              .fontSize(20)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#333333')
+          }
+          .width('100%')
+          .padding({ left: 16, top: 12, bottom: 12 })
+
+          // 横向滚动歌单
+          List({ space: 12 }) {
+            ForEach(LOCAL_PLAYLISTS, (playlist: PlaylistItem) => {
+              ListItem() {
+                Column() {
+                  // 封面
+                  Image(playlist.cover)
+                    .width(140)
+                    .height(140)
+                    .borderRadius(12)
+                    .objectFit(ImageFit.Cover)
+                    .shadow({
+                      radius: 8,
+                      color: 'rgba(0, 0, 0, 0.1)',
+                      offsetX: 0,
+                      offsetY: 2
+                    })
+
+                  // 歌单名称
+                  Text(playlist.name)
+                    .fontSize(15)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor('#333333')
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .margin({ top: 8 })
+                    .width(140)
+
+                  // 描述
+                  Text(playlist.description)
+                    .fontSize(12)
+                    .fontColor('#999999')
+                    .maxLines(2)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .margin({ top: 4 })
+                    .width(140)
+                }
+                .alignItems(HorizontalAlign.Start)
+                .onClick(() => {
+                  // 点击歌单，使用第一个关键词搜索
+                  this.searchKeyword = playlist.keywords[0];
+                  this.performSearch();
+                })
+              }
+            }, (playlist: PlaylistItem) => playlist.id)
+          }
+          .width('100%')
+          .height(230)
+          .listDirection(Axis.Horizontal)
+          .scrollBar(BarState.Off)
+          .padding({ left: 16, right: 16 })
+        }
+        .width('100%')
+        .backgroundColor('#FAFAFA')
+        .padding({ bottom: 16 })
+      }
+
       // 加载状态
       if (this.isSearching) {
         Column() {
@@ -199,20 +271,19 @@ struct Index {
           Text('🎵')
             .fontSize(80)
             .opacity(0.3)
-          Text('暂无搜索结果')
+          Text('点击推荐歌单')
             .fontSize(16)
-            .fontColor('#999999')
+            .fontColor('#666666')
             .margin({ top: 16 })
-          Text('试试搜索你喜欢的歌曲')
+          Text('开始探索音乐')
             .fontSize(14)
-            .fontColor('#CCCCCC')
+            .fontColor('#999999')
             .margin({ top: 8 })
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
       }
-
       // 迷你播放器
       if (this.currentSong) {
         MiniPlayer()
