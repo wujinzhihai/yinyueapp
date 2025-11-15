@@ -93,7 +93,25 @@ struct Index {
   build() {
     Column() {
       // 搜索栏
+      // 搜索栏
       Row() {
+        // 🏠 返回首页按钮（仅在搜索结果页显示）
+        if (this.searchResults.length > 0) {
+          Button({ type: ButtonType.Circle }) {
+            Text('🏠')
+              .fontSize(20)
+          }
+          .width(50)
+          .height(50)
+          .backgroundColor('#F5F5F5')
+          .margin({ right: 12 })
+          .onClick(() => {
+            // 清空搜索关键词和结果，回到首页歌单列表
+            this.searchKeyword = '';
+            this.searchResults = [];
+          })
+        }
+
         TextInput({ placeholder: '搜索歌曲、歌手', text: $$this.searchKeyword })
           .layoutWeight(1)
           .height(50)
